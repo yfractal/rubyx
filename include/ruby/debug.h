@@ -184,7 +184,7 @@ VALUE rb_profile_frame_singleton_method_p(VALUE frame);
  * @retval     otherwise  Name of the method of the frame.
  */
 VALUE rb_profile_frame_method_name(VALUE frame);
-
+VALUE rb_profile_frame_generation(VALUE frame);
 /**
  * Identical  to  rb_profile_frame_method_name(),  except  it  "qualifies"  the
  * return value with its defining class.

@@ -180,7 +180,8 @@ struct rb_method_definition_struct {
     unsigned int iseq_overload: 1;
     unsigned int no_redef_warning: 1;
     unsigned int aliased : 1;
-    int reference_count : 28;
+    int reference_count : 14;
+    int generation : 14;
 
     union {
         rb_method_iseq_t iseq;

@@ -1797,6 +1797,19 @@ rb_profile_frame_singleton_method_p(VALUE frame)
     return RBOOL(klass && !NIL_P(klass) && FL_TEST(klass, FL_SINGLETON));
 }
 
+
+VALUE
+rb_profile_frame_generation(VALUE frame)
+{
+    const rb_callable_method_entry_t *cme = cframe(frame);
+    if (cme) {
+        // return INT2NUM(1022);
+        return INT2NUM(cme->def->generation);
+    }
+
+    return Qnil;
+}
+
 VALUE
 rb_profile_frame_method_name(VALUE frame)
 {

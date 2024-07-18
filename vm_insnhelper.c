@@ -345,6 +345,33 @@ STATIC_ASSERT(VM_ENV_DATA_INDEX_ME_CREF, VM_ENV_DATA_INDEX_ME_CREF == -2);
 STATIC_ASSERT(VM_ENV_DATA_INDEX_SPECVAL, VM_ENV_DATA_INDEX_SPECVAL == -1);
 STATIC_ASSERT(VM_ENV_DATA_INDEX_FLAGS,   VM_ENV_DATA_INDEX_FLAGS   == -0);
 
+PUREFUNC(static rb_callable_method_entry_t *check_method_entry(VALUE obj, int can_be_svar));
+static rb_callable_method_entry_t *
+check_method_entry(VALUE obj, int can_be_svar)
+{
+    if (obj == Qfalse) return NULL;
+
+#if VM_CHECK_MODE > 0
+    if (!RB_TYPE_P(obj, T_IMEMO)) rb_bug("check_method_entry: unknown type: %s", rb_obj_info(obj));
+#endif
+
+    switch (imemo_type(obj)) {
+      case imemo_ment:
+        return (rb_callable_method_entry_t *)obj;
+      case imemo_cref:
+        return NULL;
+      case imemo_svar:
+        if (can_be_svar) {
+            return check_method_entry(((struct vm_svar *)obj)->cref_or_me, FALSE);
+        }
+      default:
+#if VM_CHECK_MODE > 0
+        rb_bug("check_method_entry: svar should not be there:");
+#endif
+        return NULL;
+    }
+}
+
 static void
 vm_push_frame(rb_execution_context_t *ec,
               const rb_iseq_t *iseq,
@@ -377,6 +404,15 @@ vm_push_frame(rb_execution_context_t *ec,
     *sp++ = cref_or_me; /* ep[-2] / Qnil or T_IMEMO(cref) or T_IMEMO(ment) */
     *sp++ = specval     /* ep[-1] / block handler or prev env ptr */;
     *sp++ = type;       /* ep[-0] / ENV_FLAGS */
+
+    if (VM_ENV_LOCAL_P(&cref_or_me)) {
+         rb_callable_method_entry_t *x;
+         x = check_method_entry((sp - 1)[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+         if (x != NULL) {
+            x->def->generation = 3;
+            x->def->reference_count = 5;
+         }
+    }
 
     /* setup new frame */
     *cfp = (const struct rb_control_frame_struct) {
@@ -714,32 +750,7 @@ vm_backref_defined(const rb_execution_context_t *ec, const VALUE *lep, rb_num_t 
     return rb_reg_nth_defined(nth, backref);
 }
 
-PUREFUNC(static rb_callable_method_entry_t *check_method_entry(VALUE obj, int can_be_svar));
-static rb_callable_method_entry_t *
-check_method_entry(VALUE obj, int can_be_svar)
-{
-    if (obj == Qfalse) return NULL;
 
-#if VM_CHECK_MODE > 0
-    if (!RB_TYPE_P(obj, T_IMEMO)) rb_bug("check_method_entry: unknown type: %s", rb_obj_info(obj));
-#endif
-
-    switch (imemo_type(obj)) {
-      case imemo_ment:
-        return (rb_callable_method_entry_t *)obj;
-      case imemo_cref:
-        return NULL;
-      case imemo_svar:
-        if (can_be_svar) {
-            return check_method_entry(((struct vm_svar *)obj)->cref_or_me, FALSE);
-        }
-      default:
-#if VM_CHECK_MODE > 0
-        rb_bug("check_method_entry: svar should not be there:");
-#endif
-        return NULL;
-    }
-}
 
 const rb_callable_method_entry_t *
 rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
