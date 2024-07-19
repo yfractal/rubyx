@@ -3099,7 +3099,8 @@ vm_call_iseq_setup_normal(rb_execution_context_t *ec, rb_control_frame_t *cfp, s
     VALUE *sp = argv + param_size;
     cfp->sp = argv - 1 /* recv */;
 
-    iseq->body->param.generation = 111;
+    iseq->body->param.generation = ec->generation;
+    ec->generation += 1;
 
     vm_push_frame(ec, iseq, VM_FRAME_MAGIC_METHOD | VM_ENV_FLAG_LOCAL, calling->recv,
                   calling->block_handler, (VALUE)me,
