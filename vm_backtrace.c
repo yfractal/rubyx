@@ -1807,7 +1807,8 @@ rb_profile_frame_generation(VALUE frame)
         return INT2NUM(cme->def->generation);
     }
 
-    return Qnil;
+    const rb_iseq_t *iseq = frame2iseq(frame);
+    return INT2NUM(iseq->body->param.generation);
 }
 
 VALUE

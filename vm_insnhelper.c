@@ -409,7 +409,7 @@ vm_push_frame(rb_execution_context_t *ec,
          rb_callable_method_entry_t *x;
          x = check_method_entry((sp - 1)[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
          if (x != NULL) {
-            x->def->generation = 3;
+            x->def->generation = 102;
             x->def->reference_count = 5;
          }
     }
@@ -3098,6 +3098,8 @@ vm_call_iseq_setup_normal(rb_execution_context_t *ec, rb_control_frame_t *cfp, s
     VALUE *argv = cfp->sp - calling->argc;
     VALUE *sp = argv + param_size;
     cfp->sp = argv - 1 /* recv */;
+
+    iseq->body->param.generation = 111;
 
     vm_push_frame(ec, iseq, VM_FRAME_MAGIC_METHOD | VM_ENV_FLAG_LOCAL, calling->recv,
                   calling->block_handler, (VALUE)me,
