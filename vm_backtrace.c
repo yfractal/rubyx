@@ -1575,6 +1575,8 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
 
 typedef struct framex_struct {
     int generation;
+    int trace_id;
+    VALUE method_name;
 } framex_t;
 
 static int
@@ -1582,6 +1584,7 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 {
     int i;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+    const rb_callable_method_entry_t *cme;
 
     // If this function is called inside a thread after thread creation, but
     // before the CFP has been created, just return 0.  This can happen when
@@ -1604,6 +1607,20 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 
         framex_t *ptr = (framex_t *)malloc(sizeof(framex_t)); // no gc here ...
         ptr->generation = cfp->generation;
+        ptr->trace_id = cfp->trace_id;
+        if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
+            cme = rb_vm_frame_method_entry(cfp);
+            if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+                ptr->method_name = rb_profile_frame_method_name((VALUE)cme);
+            } else {
+                ptr->method_name = rb_profile_frame_method_name((VALUE)cfp->iseq);
+            }
+        } else {
+            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+                 ptr->method_name = rb_profile_frame_method_name((VALUE)cme);
+            }
+        }
+
         buff[i] = (VALUE)ptr;
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
@@ -1861,7 +1878,7 @@ rb_profile_frame_generation(VALUE frame)
 VALUE
 rb_frame_generation(VALUE frame)
 {
-    const rb_control_frame_t *cf = (rb_control_frame_t *)(frame);
+    const framex_t *cf = (framex_t *)(frame);
 
     return INT2NUM(cf->generation);
 }
@@ -1869,9 +1886,17 @@ rb_frame_generation(VALUE frame)
 VALUE
 rb_frame_trace_id(VALUE frame)
 {
-    const rb_control_frame_t *cf = (rb_control_frame_t *)(frame);
+    const framex_t *cf = (framex_t *)(frame);
 
     return INT2NUM(cf->trace_id);
+}
+
+VALUE
+rb_frame_method_name(VALUE frame)
+{
+    const framex_t *cf = (framex_t *)(frame);
+
+    return cf->method_name;
 }
 
 VALUE
