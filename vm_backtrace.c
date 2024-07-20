@@ -1573,6 +1573,10 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
     return dc->backtrace;
 }
 
+typedef struct framex_struct {
+    int generation;
+} framex_t;
+
 static int
 thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 {
@@ -1598,7 +1602,13 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
             continue;
         }
 
-        buff[i] = (VALUE)cfp;
+        framex_t *const framex = NULL;
+        *framex = (const struct framex_struct) {
+            .generation = cfp->generation // GC?
+        };
+
+        buff[i] = (VALUE)framex;
+
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
         i++;
     }
