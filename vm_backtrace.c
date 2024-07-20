@@ -1574,6 +1574,46 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
 }
 
 static int
+thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
+{
+    int i;
+    const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+
+    // If this function is called inside a thread after thread creation, but
+    // before the CFP has been created, just return 0.  This can happen when
+    // sampling via signals.  Threads can be interrupted randomly by the
+    // signal, including during the time after the thread has been created, but
+    // before the CFP has been allocated
+    if (!cfp) {
+        return 0;
+    }
+
+    // Skip dummy frame; see `rb_ec_partial_backtrace_object` for details
+    end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+
+    for (i=0; i<limit && cfp != end_cfp;) {
+        // skip start
+        if (start > 0) {
+            start--;
+            continue;
+        }
+
+        buff[i] = (VALUE)cfp;
+        cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
+        i++;
+    }
+
+    return i;
+}
+
+int
+rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff)
+{
+    rb_thread_t *th = rb_thread_ptr(thread);
+    return thread_frames(th->ec, start, limit, buff);
+}
+
+static int
 thread_profile_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, int *lines)
 {
     int i;

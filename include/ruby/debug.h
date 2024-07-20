@@ -69,6 +69,7 @@ int rb_profile_frames(int start, int limit, VALUE *buff, int *lines);
  * @post        `lines` is filled with `__LINE__` of each backtraces.
  */
 int rb_profile_thread_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
+int rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff);
 
 /**
  * Queries the path of the passed backtrace.
