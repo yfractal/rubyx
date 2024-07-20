@@ -1602,12 +1602,9 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
             continue;
         }
 
-        framex_t *const framex = NULL;
-        *framex = (const struct framex_struct) {
-            .generation = cfp->generation // GC?
-        };
-
-        buff[i] = (VALUE)framex;
+        framex_t *ptr = (framex_t *)malloc(sizeof(framex_t)); // no gc here ...
+        ptr->generation = cfp->generation;
+        buff[i] = (VALUE)ptr;
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
         i++;
