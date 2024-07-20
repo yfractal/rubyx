@@ -1852,6 +1852,22 @@ rb_profile_frame_generation(VALUE frame)
 }
 
 VALUE
+rb_frame_generation(VALUE frame)
+{
+    const rb_control_frame_t *cf = (rb_control_frame_t *)(frame);
+
+    return INT2NUM(cf->generation);
+}
+
+VALUE
+rb_frame_trace_id(VALUE frame)
+{
+    const rb_control_frame_t *cf = (rb_control_frame_t *)(frame);
+
+    return INT2NUM(cf->trace_id);
+}
+
+VALUE
 rb_profile_frame_method_name(VALUE frame)
 {
     const rb_callable_method_entry_t *cme = cframe(frame);

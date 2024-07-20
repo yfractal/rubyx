@@ -851,6 +851,11 @@ struct rb_block {
     enum rb_block_type type;
 };
 
+// typedef struct rb_control_frame_struct_meta {
+//     int trace_id; // todo: use string
+//     int generation;
+// } rb_control_frame_struct_meta_t;
+
 typedef struct rb_control_frame_struct {
     const VALUE *pc;        // cfp[0]
     VALUE *sp;              // cfp[1]
@@ -859,6 +864,9 @@ typedef struct rb_control_frame_struct {
     const VALUE *ep;        // cfp[4] / block[1]
     const void *block_code; // cfp[5] / block[2] -- iseq, ifunc, or forwarded block handler
     void *jit_return;       // cfp[6] -- return address for JIT code
+    int trace_id;            // todo: use string
+    int generation;
+
 #if VM_DEBUG_BP_CHECK
     VALUE *bp_check;        // cfp[7]
 #endif
