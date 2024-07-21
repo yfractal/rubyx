@@ -425,7 +425,6 @@ struct rb_iseq_constant_body {
         int post_start;
         int post_num;
         int block_start;
-        int generation;
 
         const VALUE *opt_table; /* (opt_num + 1) entries. */
         /* opt_num and opt_table:
@@ -851,6 +850,11 @@ struct rb_block {
     enum rb_block_type type;
 };
 
+// typedef struct rb_control_frame_struct_meta {
+//     int trace_id; // todo: use string
+//     int generation;
+// } rb_control_frame_struct_meta_t;
+
 typedef struct rb_control_frame_struct {
     const VALUE *pc;        // cfp[0]
     VALUE *sp;              // cfp[1]
@@ -859,6 +863,8 @@ typedef struct rb_control_frame_struct {
     const VALUE *ep;        // cfp[4] / block[1]
     const void *block_code; // cfp[5] / block[2] -- iseq, ifunc, or forwarded block handler
     void *jit_return;       // cfp[6] -- return address for JIT code
+    int generation;
+
 #if VM_DEBUG_BP_CHECK
     VALUE *bp_check;        // cfp[7]
 #endif
@@ -986,6 +992,7 @@ struct rb_waiting_list {
 
 struct rb_execution_context_struct {
     int generation;
+    int trace_id;
     /* execution information */
     VALUE *vm_stack;		/* must free, must mark */
     size_t vm_stack_size;       /* size in word (byte size / sizeof(VALUE)) */

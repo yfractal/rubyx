@@ -69,6 +69,8 @@ int rb_profile_frames(int start, int limit, VALUE *buff, int *lines);
  * @post        `lines` is filled with `__LINE__` of each backtraces.
  */
 int rb_profile_thread_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
+int rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff);
+bool rb_set_trace_id_and_generation(int trace_id, int generation_id);
 
 /**
  * Queries the path of the passed backtrace.
@@ -184,7 +186,10 @@ VALUE rb_profile_frame_singleton_method_p(VALUE frame);
  * @retval     otherwise  Name of the method of the frame.
  */
 VALUE rb_profile_frame_method_name(VALUE frame);
-VALUE rb_profile_frame_generation(VALUE frame);
+VALUE rb_frame_generation(VALUE frame);
+VALUE rb_frame_trace_id(VALUE frame);
+VALUE rb_frame_method_name(VALUE frame);
+
 /**
  * Identical  to  rb_profile_frame_method_name(),  except  it  "qualifies"  the
  * return value with its defining class.
