@@ -386,10 +386,6 @@ vm_push_frame(rb_execution_context_t *ec,
 {
     rb_control_frame_t *const cfp = RUBY_VM_NEXT_CONTROL_FRAME(ec->cfp);
 
-    cfp->generation = ec->generation;
-    cfp->trace_id = ec->trace_id;
-    ec->generation += 1;
-
     vm_check_frame(type, specval, cref_or_me, iseq);
     VM_ASSERT(local_size >= 0);
 
@@ -418,6 +414,7 @@ vm_push_frame(rb_execution_context_t *ec,
          }
     }
 
+    ec->generation += 1;
     /* setup new frame */
     *cfp = (const struct rb_control_frame_struct) {
         .pc         = pc,
@@ -426,6 +423,7 @@ vm_push_frame(rb_execution_context_t *ec,
         .self       = self,
         .ep         = sp - 1,
         .block_code = NULL,
+        .generation = ec->generation,
 #if VM_DEBUG_BP_CHECK
         .bp_check   = sp,
 #endif
