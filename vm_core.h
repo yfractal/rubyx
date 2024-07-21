@@ -994,6 +994,7 @@ struct rb_waiting_list {
 
 struct rb_execution_context_struct {
     int generation;
+    int trace_id;
     /* execution information */
     VALUE *vm_stack;		/* must free, must mark */
     size_t vm_stack_size;       /* size in word (byte size / sizeof(VALUE)) */

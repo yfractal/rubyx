@@ -1703,6 +1703,22 @@ thread_profile_frames(rb_execution_context_t *ec, int start, int limit, VALUE *b
     return i;
 }
 
+bool
+rb_set_trace_id_and_generation(int trace_id, int generation_id)
+{
+    rb_execution_context_t *ec = rb_current_execution_context(false);
+
+    // If there is no EC, we may be attempting to profile a non-Ruby thread or a
+    // M:N shared native thread which has no active Ruby thread.
+    if (!ec) {
+        return false;
+    }
+
+    ec->trace_id = trace_id;
+    ec->generation = generation_id;
+    return true;
+}
+
 int
 rb_profile_frames(int start, int limit, VALUE *buff, int *lines)
 {

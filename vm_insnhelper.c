@@ -3100,7 +3100,7 @@ vm_call_iseq_setup_normal(rb_execution_context_t *ec, rb_control_frame_t *cfp, s
     cfp->sp = argv - 1 /* recv */;
 
     cfp->generation = ec->generation;
-    cfp->trace_id = ec->generation; // todo, assign trace_id from ec
+    cfp->trace_id = ec->trace_id; // todo, assign trace_id from ec
     iseq->body->param.generation = ec->generation;
     ec->generation += 1;
 
