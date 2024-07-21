@@ -1608,7 +1608,7 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 
         framex_t *ptr = (framex_t *)malloc(sizeof(framex_t)); // no gc here ...
         ptr->generation = cfp->generation;
-        ptr->trace_id = cfp->trace_id;
+        ptr->trace_id = ec->trace_id;
         cme = rb_vm_frame_method_entry(cfp);
 
         if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
