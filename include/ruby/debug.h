@@ -186,7 +186,6 @@ VALUE rb_profile_frame_singleton_method_p(VALUE frame);
  * @retval     otherwise  Name of the method of the frame.
  */
 VALUE rb_profile_frame_method_name(VALUE frame);
-VALUE rb_profile_frame_generation(VALUE frame);
 VALUE rb_frame_generation(VALUE frame);
 VALUE rb_frame_trace_id(VALUE frame);
 VALUE rb_frame_method_name(VALUE frame);
