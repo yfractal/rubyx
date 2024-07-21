@@ -386,6 +386,10 @@ vm_push_frame(rb_execution_context_t *ec,
 {
     rb_control_frame_t *const cfp = RUBY_VM_NEXT_CONTROL_FRAME(ec->cfp);
 
+    cfp->generation = ec->generation;
+    cfp->trace_id = ec->trace_id;
+    ec->generation += 1;
+
     vm_check_frame(type, specval, cref_or_me, iseq);
     VM_ASSERT(local_size >= 0);
 
@@ -3098,11 +3102,6 @@ vm_call_iseq_setup_normal(rb_execution_context_t *ec, rb_control_frame_t *cfp, s
     VALUE *argv = cfp->sp - calling->argc;
     VALUE *sp = argv + param_size;
     cfp->sp = argv - 1 /* recv */;
-
-    cfp->generation = ec->generation;
-    cfp->trace_id = ec->trace_id; // todo, assign trace_id from ec
-    iseq->body->param.generation = ec->generation;
-    ec->generation += 1;
 
     vm_push_frame(ec, iseq, VM_FRAME_MAGIC_METHOD | VM_ENV_FLAG_LOCAL, calling->recv,
                   calling->block_handler, (VALUE)me,

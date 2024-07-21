@@ -1577,6 +1577,7 @@ typedef struct framex_struct {
     int generation;
     int trace_id;
     VALUE method_name;
+    int method_type;
 } framex_t;
 
 static int
@@ -1612,13 +1613,16 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 
         if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
             if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+                ptr->method_type = 1;
                 ptr->method_name = rb_profile_frame_method_name((VALUE)cme);
             } else {
+                ptr->method_type = 1;
                 ptr->method_name = rb_profile_frame_method_name((VALUE)cfp->iseq);
             }
         } else {
             if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-                 ptr->method_name = rb_profile_frame_method_name((VALUE)cme);
+                ptr->method_type = 0;
+                ptr->method_name = rb_profile_frame_method_name((VALUE)cme);
             }
         }
 

@@ -425,7 +425,6 @@ struct rb_iseq_constant_body {
         int post_start;
         int post_num;
         int block_start;
-        int generation;
 
         const VALUE *opt_table; /* (opt_num + 1) entries. */
         /* opt_num and opt_table:
