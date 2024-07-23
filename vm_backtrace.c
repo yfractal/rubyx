@@ -1577,7 +1577,9 @@ typedef struct framex_struct {
     int generation;
     int trace_id;
     VALUE method_name;
+    VALUE full_label;
     int method_type;
+    int lineno;
 } framex_t;
 
 static int
@@ -1606,26 +1608,24 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
             continue;
         }
 
+        cme = rb_vm_frame_method_entry(cfp);
         framex_t *ptr = (framex_t *)malloc(sizeof(framex_t)); // no gc here ...
         ptr->generation = cfp->generation;
         ptr->trace_id = ec->trace_id;
-        cme = rb_vm_frame_method_entry(cfp);
-
-        if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
-            if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+        if (cfp->iseq) {
+            if (cfp->pc) {
+                ptr->method_name = ISEQ_BODY(cfp->iseq)->location.label;
+                // ptr->method_name = rb_profile_frame_qualified_method_name((VALUE)cme);
                 ptr->method_type = 1;
-                ptr->method_name = rb_profile_frame_method_name((VALUE)cme);
-            } else {
-                ptr->method_type = 1;
-                ptr->method_name = rb_profile_frame_method_name((VALUE)cfp->iseq);
+                // ptr->lineno = calc_lineno(cfp->iseq, cfp->pc);
             }
         } else {
-            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-                ptr->method_type = 0;
-                ptr->method_name = rb_profile_frame_method_name((VALUE)cme);
-            }
+            ID mid = cme->def->original_id;
+            ptr->method_name = rb_id2str(mid);
+            ptr->method_type = 1;
+            // ptr->lineno = 0;
         }
-
+        ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
         buff[i] = (VALUE)ptr;
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
