@@ -1619,13 +1619,20 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
                 ptr->method_type = 1;
                 // ptr->lineno = calc_lineno(cfp->iseq, cfp->pc);
             }
+
+            if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+                ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
+            }  else {
+                ptr->full_label = rb_profile_frame_full_label((VALUE)cfp->iseq);
+            }
         } else {
             ID mid = cme->def->original_id;
             ptr->method_name = rb_id2str(mid);
             ptr->method_type = 1;
             // ptr->lineno = 0;
+            ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
         }
-        ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
+
         buff[i] = (VALUE)ptr;
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
