@@ -1576,8 +1576,8 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
 typedef struct framex_struct {
     int generation;
     int trace_id;
-    VALUE method_name;
-    VALUE full_label;
+    // VALUE method_name;
+    // VALUE full_label;
     int method_type;
     int lineno;
 } framex_t;
@@ -1609,31 +1609,35 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
         }
 
         cme = rb_vm_frame_method_entry(cfp);
-        framex_t *ptr = (framex_t *)malloc(sizeof(framex_t)); // no gc here ...
+        framex_t *ptr = (framex_t *)buff[i];
+        // framex_t *ptr = (framex_t *)malloc(sizeof(framex_t)); // no gc here ...
         ptr->generation = cfp->generation;
         ptr->trace_id = ec->trace_id;
         if (cfp->iseq) {
             if (cfp->pc) {
-                ptr->method_name = ISEQ_BODY(cfp->iseq)->location.label;
+                // ptr->method_name = ISEQ_BODY(cfp->iseq)->location.label;
                 // ptr->method_name = rb_profile_frame_qualified_method_name((VALUE)cme);
                 ptr->method_type = 1;
                 // ptr->lineno = calc_lineno(cfp->iseq, cfp->pc);
             }
 
             if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-                ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
+               // ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
             }  else {
-                ptr->full_label = rb_profile_frame_full_label((VALUE)cfp->iseq);
+                // ptr->full_label = rb_profile_frame_full_label((VALUE)cfp->iseq);
             }
         } else {
             ID mid = cme->def->original_id;
-            ptr->method_name = rb_id2str(mid);
-            ptr->method_type = 1;
+            // ptr->method_name = rb_id2str(mid);
+            ptr->method_type = -1;
             // ptr->lineno = 0;
-            ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
+            // ptr->full_label = Qnil;
+            // if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC && RB_TYPE_P(cme, T_IMEMO)) {
+            //   //  ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
+            // }
         }
 
-        buff[i] = (VALUE)ptr;
+        // buff[i] = (VALUE)ptr;
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
         i++;
@@ -1903,14 +1907,6 @@ rb_frame_trace_id(VALUE frame)
     const framex_t *cf = (framex_t *)(frame);
 
     return INT2NUM(cf->trace_id);
-}
-
-VALUE
-rb_frame_method_name(VALUE frame)
-{
-    const framex_t *cf = (framex_t *)(frame);
-
-    return cf->method_name;
 }
 
 VALUE
