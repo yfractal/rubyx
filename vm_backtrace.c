@@ -1590,11 +1590,12 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, sta
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
 
-    // If this function is called inside a thread after thread creation, but
-    // before the CFP has been created, just return 0.  This can happen when
-    // sampling via signals.  Threads can be interrupted randomly by the
-    // signal, including during the time after the thread has been created, but
-    // before the CFP has been allocated
+    VALUE method_name = Qnil;
+    int method_type = 0;
+    int lineno = 0;
+    VALUE full_label = Qnil;
+    VALUE profile_frame;
+
     if (!cfp) {
         return 0;
     }
@@ -1603,42 +1604,38 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, sta
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
     for (i=0; i<limit && cfp != end_cfp;) {
-        // skip start
-        if (start > 0) {
-            start--;
-            continue;
-        }
-
-        cme = rb_vm_frame_method_entry(cfp);
-        VALUE method_name = Qnil;
-        int method_type = 0;
-        int lineno = 0;
-        VALUE full_label = Qnil;
-
-        if (cfp->iseq) {
-            if (cfp->pc) {
-                VALUE method_name = ISEQ_BODY(cfp->iseq)->location.label;
-                method_type = 1;
-                lineno = calc_lineno(cfp->iseq, cfp->pc);
+        if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
+            // skip start
+            if (start > 0) {
+                start--;
+                continue;
             }
 
+            cme = rb_vm_frame_method_entry(cfp);
             if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-                full_label = rb_profile_frame_full_label((VALUE)cme);
+                profile_frame = (VALUE)cme;
             }  else {
-                full_label = rb_profile_frame_full_label((VALUE)cfp->iseq);
+                profile_frame = (VALUE)cfp->iseq;
             }
+
+            method_name = rb_profile_frame_method_name(profile_frame);
+            full_label = rb_profile_frame_full_label(profile_frame);
+
             update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
+
+            i++;
         } else {
-            ID mid = cme->def->original_id;
-            method_type = 2;
-            method_name = rb_id2str(mid);
-            lineno = 0;
-            full_label = Qnil;
-            update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
+            cme = rb_vm_frame_method_entry(cfp);
+            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+                method_name = rb_profile_frame_method_name((VALUE)cme);
+                full_label = rb_profile_frame_full_label((VALUE)cme);
+
+                update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
+                i ++;
+            }
         }
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
-        i++;
     }
 
     return i;
