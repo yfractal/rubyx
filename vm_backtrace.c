@@ -1583,7 +1583,7 @@ typedef struct framex_struct {
 } framex_t;
 
 static int
-thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
+thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t update_func)
 {
     int i;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
@@ -1637,6 +1637,8 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
             // }
         }
 
+        update_func(buff[i]);
+//         stack_frame_update_xframe(buff[i]);
         // buff[i] = (VALUE)ptr;
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
@@ -1647,10 +1649,10 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 }
 
 int
-rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff)
+rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t func)
 {
     rb_thread_t *th = rb_thread_ptr(thread);
-    return thread_frames(th->ec, start, limit, buff);
+    return thread_frames(th->ec, start, limit, buff, func);
 }
 
 static int
