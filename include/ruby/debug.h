@@ -68,9 +68,9 @@ int rb_profile_frames(int start, int limit, VALUE *buff, int *lines);
  * @post        `buff` is filled with backtrace pointers.
  * @post        `lines` is filled with `__LINE__` of each backtraces.
  */
-
-typedef void (*stack_frame_update_xframe_func_ptr_t)(VALUE);
 int rb_profile_thread_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
+
+typedef void (*stack_frame_update_xframe_func_ptr_t)(VALUE, int, int, VALUE,  VALUE,  int,  int);
 int rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t func);
 bool rb_set_trace_id_and_generation(int trace_id, int generation_id);
 

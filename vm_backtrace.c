@@ -1573,13 +1573,14 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
     return dc->backtrace;
 }
 
-typedef struct framex_struct {
+typedef struct {
     int generation;
     int trace_id;
-    // VALUE method_name;
-    // VALUE full_label;
+    VALUE method_name;
+    VALUE full_label;
     int method_type;
     int lineno;
+    int index;
 } framex_t;
 
 static int
@@ -1609,37 +1610,32 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, sta
         }
 
         cme = rb_vm_frame_method_entry(cfp);
-        framex_t *ptr = (framex_t *)buff[i];
-        // framex_t *ptr = (framex_t *)malloc(sizeof(framex_t)); // no gc here ...
-        ptr->generation = cfp->generation;
-        ptr->trace_id = ec->trace_id;
+        VALUE method_name = Qnil;
+        int method_type = 0;
+        int lineno = 0;
+        VALUE full_label = Qnil;
+
         if (cfp->iseq) {
             if (cfp->pc) {
-                // ptr->method_name = ISEQ_BODY(cfp->iseq)->location.label;
-                // ptr->method_name = rb_profile_frame_qualified_method_name((VALUE)cme);
-                ptr->method_type = 1;
-                // ptr->lineno = calc_lineno(cfp->iseq, cfp->pc);
+                VALUE method_name = ISEQ_BODY(cfp->iseq)->location.label;
+                method_type = 1;
+                lineno = calc_lineno(cfp->iseq, cfp->pc);
             }
 
             if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-               // ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
+                full_label = rb_profile_frame_full_label((VALUE)cme);
             }  else {
-                // ptr->full_label = rb_profile_frame_full_label((VALUE)cfp->iseq);
+                full_label = rb_profile_frame_full_label((VALUE)cfp->iseq);
             }
+            update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
         } else {
             ID mid = cme->def->original_id;
-            // ptr->method_name = rb_id2str(mid);
-            ptr->method_type = -1;
-            // ptr->lineno = 0;
-            // ptr->full_label = Qnil;
-            // if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC && RB_TYPE_P(cme, T_IMEMO)) {
-            //   //  ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
-            // }
+            method_type = 2;
+            method_name = rb_id2str(mid);
+            lineno = 0;
+            full_label = Qnil;
+            update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
         }
-
-        update_func(buff[i]);
-//         stack_frame_update_xframe(buff[i]);
-        // buff[i] = (VALUE)ptr;
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
         i++;
