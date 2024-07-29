@@ -1573,27 +1573,29 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
     return dc->backtrace;
 }
 
-typedef struct framex_struct {
+typedef struct {
     int generation;
     int trace_id;
     VALUE method_name;
     VALUE full_label;
     int method_type;
     int lineno;
+    int index;
 } framex_t;
 
 static int
-thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
+thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t update_func)
 {
     int i;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
 
-    // If this function is called inside a thread after thread creation, but
-    // before the CFP has been created, just return 0.  This can happen when
-    // sampling via signals.  Threads can be interrupted randomly by the
-    // signal, including during the time after the thread has been created, but
-    // before the CFP has been allocated
+    VALUE method_name = Qnil;
+    int method_type = 0;
+    int lineno = 0;
+    VALUE full_label = Qnil;
+    VALUE profile_frame;
+
     if (!cfp) {
         return 0;
     }
@@ -1602,51 +1604,48 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
     for (i=0; i<limit && cfp != end_cfp;) {
-        // skip start
-        if (start > 0) {
-            start--;
-            continue;
-        }
-
-        cme = rb_vm_frame_method_entry(cfp);
-        framex_t *ptr = (framex_t *)malloc(sizeof(framex_t)); // no gc here ...
-        ptr->generation = cfp->generation;
-        ptr->trace_id = ec->trace_id;
-        if (cfp->iseq) {
-            if (cfp->pc) {
-                ptr->method_name = ISEQ_BODY(cfp->iseq)->location.label;
-                // ptr->method_name = rb_profile_frame_qualified_method_name((VALUE)cme);
-                ptr->method_type = 1;
-                // ptr->lineno = calc_lineno(cfp->iseq, cfp->pc);
+        if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
+            // skip start
+            if (start > 0) {
+                start--;
+                continue;
             }
 
+            cme = rb_vm_frame_method_entry(cfp);
             if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-                ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
+                profile_frame = (VALUE)cme;
             }  else {
-                ptr->full_label = rb_profile_frame_full_label((VALUE)cfp->iseq);
+                profile_frame = (VALUE)cfp->iseq;
             }
-        } else {
-            ID mid = cme->def->original_id;
-            ptr->method_name = rb_id2str(mid);
-            ptr->method_type = 1;
-            // ptr->lineno = 0;
-            ptr->full_label = rb_profile_frame_full_label((VALUE)cme);
-        }
 
-        buff[i] = (VALUE)ptr;
+            method_name = rb_profile_frame_method_name(profile_frame);
+            full_label = rb_profile_frame_full_label(profile_frame);
+
+            update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
+
+            i++;
+        } else {
+            cme = rb_vm_frame_method_entry(cfp);
+            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+                method_name = rb_profile_frame_method_name((VALUE)cme);
+                full_label = rb_profile_frame_full_label((VALUE)cme);
+
+                update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
+                i ++;
+            }
+        }
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
-        i++;
     }
 
     return i;
 }
 
 int
-rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff)
+rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t func)
 {
     rb_thread_t *th = rb_thread_ptr(thread);
-    return thread_frames(th->ec, start, limit, buff);
+    return thread_frames(th->ec, start, limit, buff, func);
 }
 
 static int
@@ -1903,14 +1902,6 @@ rb_frame_trace_id(VALUE frame)
     const framex_t *cf = (framex_t *)(frame);
 
     return INT2NUM(cf->trace_id);
-}
-
-VALUE
-rb_frame_method_name(VALUE frame)
-{
-    const framex_t *cf = (framex_t *)(frame);
-
-    return cf->method_name;
 }
 
 VALUE
