@@ -1573,15 +1573,78 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
     return dc->backtrace;
 }
 
-typedef struct {
-    int generation;
-    int trace_id;
-    VALUE method_name;
-    VALUE full_label;
-    int method_type;
-    int lineno;
-    int index;
-} framex_t;
+static int
+thread_frames2(rb_execution_context_t *ec, int start, int limit, framex_t* buff)
+{
+    int i;
+    const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+    const rb_callable_method_entry_t *cme;
+
+    VALUE method_name = Qnil;
+    int method_type = 0;
+    int lineno = 0;
+    VALUE full_label = Qnil;
+    VALUE profile_frame;
+
+    if (!cfp) {
+        return 0;
+    }
+
+    // Skip dummy frame; see `rb_ec_partial_backtrace_object` for details
+    end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+
+    for (i=0; i<limit && cfp != end_cfp;) {
+        if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
+            // skip start
+            if (start > 0) {
+                start--;
+                continue;
+            }
+
+            cme = rb_vm_frame_method_entry(cfp);
+            if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+                profile_frame = (VALUE)cme;
+            }  else {
+                profile_frame = (VALUE)cfp->iseq;
+            }
+
+            method_name = rb_profile_frame_method_name(profile_frame);
+            full_label = rb_profile_frame_full_label(profile_frame);
+            buff[i].trace_id = ec->trace_id;
+            buff[i].generation = cfp->generation;
+            buff[i].method_name = method_name;
+            buff[i].full_label = full_label;
+            buff[i].method_type = method_type;
+            buff[i].lineno = lineno;
+
+            i++;
+        } else {
+            cme = rb_vm_frame_method_entry(cfp);
+            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+                method_name = rb_profile_frame_method_name((VALUE)cme);
+                full_label = rb_profile_frame_full_label((VALUE)cme);
+                buff[i].trace_id = ec->trace_id;
+                buff[i].generation = cfp->generation;
+                buff[i].method_name = method_name;
+                buff[i].full_label = full_label;
+                buff[i].method_type = method_type;
+                buff[i].lineno = lineno;
+                i ++;
+            }
+        }
+
+        cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
+    }
+
+    return i;
+}
+
+int
+rb_thread_frames2(VALUE thread, int start, int limit, framex_t *buff)
+{
+    rb_thread_t *th = rb_thread_ptr(thread);
+    return thread_frames2(th->ec, start, limit, buff);
+}
 
 static int
 thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t update_func)
