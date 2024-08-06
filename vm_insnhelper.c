@@ -424,6 +424,7 @@ vm_push_frame(rb_execution_context_t *ec,
         .ep         = sp - 1, // type
         .block_code = NULL,
         .generation = ec->generation,
+        .method     = sp - 3, // cref_or_me
 #if VM_DEBUG_BP_CHECK
         .bp_check   = sp,
 #endif
@@ -438,7 +439,7 @@ vm_push_frame(rb_execution_context_t *ec,
     atomic_signal_fence(memory_order_seq_cst);
     #endif
 
-    ec->cfp = cfp;
+    ec->cfp = cfp; // atomic, before or after the cfp holds whole struct
 
     if (VMDEBUG == 2) {
         SDR();

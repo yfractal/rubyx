@@ -1661,29 +1661,30 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
     for (i=0; i<limit && cfp != end_cfp;) {
-        if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
-            // skip start
-            if (start > 0) {
-                start--;
-                continue;
-            }
+        buff[i] = (VALUE) cfp->method;
+        // if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
+        //     // skip start
+        //     if (start > 0) {
+        //         start--;
+        //         continue;
+        //     }
 
-            cme = rb_vm_frame_local_method_entry(cfp);
-            if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-                buff[i] = (VALUE)cme;
-            }  else {
-                buff[i] = (VALUE)cfp->iseq;
-            }
+        //     cme = rb_vm_frame_local_method_entry(cfp);
+        //     if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+        //         buff[i] = (VALUE)cme;
+        //     }  else {
+        //         buff[i] = (VALUE)cfp->iseq;
+        //     }
 
-            i++;
-        } else {
+        //     i++;
+        // } else {
 
-            cme = rb_vm_frame_local_method_entry(cfp);
-            if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-                buff[i] = (VALUE)cme;
-                i ++;
-            }
-        }
+        //     cme = rb_vm_frame_local_method_entry(cfp);
+        //     if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+        //         buff[i] = (VALUE)cme;
+        //         i ++;
+        //     }
+        // }
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
     }
