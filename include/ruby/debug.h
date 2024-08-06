@@ -80,8 +80,7 @@ typedef struct {
     int index;
 } framex_t;
 
-typedef void (*stack_frame_update_xframe_func_ptr_t)(VALUE, int, int, VALUE,  VALUE,  int,  int);
-int rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t func);
+int rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff);
 bool rb_set_trace_id_and_generation(int trace_id, int generation_id);
 int rb_thread_frames2(VALUE thread, int start, int limit, framex_t *buff);
 

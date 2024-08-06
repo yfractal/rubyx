@@ -863,10 +863,10 @@ typedef struct rb_control_frame_struct {
     const VALUE *ep;        // cfp[4] / block[1]
     const void *block_code; // cfp[5] / block[2] -- iseq, ifunc, or forwarded block handler
     void *jit_return;       // cfp[6] -- return address for JIT code
-    int generation;
+    int generation;         // cfp[6] new added
 
 #if VM_DEBUG_BP_CHECK
-    VALUE *bp_check;        // cfp[7]
+    VALUE *bp_check;        // cfp[8]
 #endif
 } rb_control_frame_t;
 
@@ -1869,6 +1869,8 @@ void rb_gc_mark_machine_stack(const rb_execution_context_t *ec);
 void rb_vm_rewrite_cref(rb_cref_t *node, VALUE old_klass, VALUE new_klass, rb_cref_t **new_cref_ptr);
 
 const rb_callable_method_entry_t *rb_vm_frame_method_entry(const rb_control_frame_t *cfp);
+const rb_callable_method_entry_t *rb_vm_frame_local_method_entry(const rb_control_frame_t *cfp);
+
 
 #define sysstack_error GET_VM()->special_exceptions[ruby_error_sysstack]
 

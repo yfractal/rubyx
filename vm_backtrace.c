@@ -1647,17 +1647,11 @@ rb_thread_frames2(VALUE thread, int start, int limit, framex_t *buff)
 }
 
 static int
-thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t update_func)
+thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 {
     int i;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
-
-    VALUE method_name = Qnil;
-    int method_type = 0;
-    int lineno = 0;
-    VALUE full_label = Qnil;
-    VALUE profile_frame;
 
     if (!cfp) {
         return 0;
@@ -1674,26 +1668,19 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, sta
                 continue;
             }
 
-            cme = rb_vm_frame_method_entry(cfp);
-            if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-                profile_frame = (VALUE)cme;
+            cme = rb_vm_frame_local_method_entry(cfp);
+            if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+                buff[i] = (VALUE)cme;
             }  else {
-                profile_frame = (VALUE)cfp->iseq;
+                buff[i] = (VALUE)cfp->iseq;
             }
-
-            method_name = rb_profile_frame_method_name(profile_frame);
-            full_label = rb_profile_frame_full_label(profile_frame);
-
-            update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
 
             i++;
         } else {
-            cme = rb_vm_frame_method_entry(cfp);
-            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-                method_name = rb_profile_frame_method_name((VALUE)cme);
-                full_label = rb_profile_frame_full_label((VALUE)cme);
 
-                update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
+            cme = rb_vm_frame_local_method_entry(cfp);
+            if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+                buff[i] = (VALUE)cme;
                 i ++;
             }
         }
@@ -1705,10 +1692,10 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, sta
 }
 
 int
-rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t func)
+rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff)
 {
     rb_thread_t *th = rb_thread_ptr(thread);
-    return thread_frames(th->ec, start, limit, buff, func);
+    return thread_frames(th->ec, start, limit, buff);
 }
 
 static int

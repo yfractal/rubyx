@@ -421,7 +421,7 @@ vm_push_frame(rb_execution_context_t *ec,
         .sp         = sp,
         .iseq       = iseq,
         .self       = self,
-        .ep         = sp - 1,
+        .ep         = sp - 1, // type
         .block_code = NULL,
         .generation = ec->generation,
 #if VM_DEBUG_BP_CHECK
@@ -752,7 +752,17 @@ vm_backref_defined(const rb_execution_context_t *ec, const VALUE *lep, rb_num_t 
     return rb_reg_nth_defined(nth, backref);
 }
 
+const rb_callable_method_entry_t *
+rb_vm_frame_local_method_entry(const rb_control_frame_t *cfp)
+{
+    const VALUE *ep = cfp->ep;
 
+    if (VM_ENV_LOCAL_P(ep)) {
+        return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+    } else {
+        return NULL;
+    }
+}
 
 const rb_callable_method_entry_t *
 rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
@@ -762,7 +772,7 @@ rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
 
     while (!VM_ENV_LOCAL_P(ep)) {
         if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
-        ep = VM_ENV_PREV_EP(ep);
+        ep = VM_ENV_PREV_EP(ep); // ep[VM_ENV_DATA_INDEX_SPECVAL], ep[-1]
     }
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
