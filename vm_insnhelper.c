@@ -759,7 +759,7 @@ rb_vm_frame_local_method_entry(const rb_control_frame_t *cfp)
     const VALUE *ep = cfp->ep;
 
     if (VM_ENV_LOCAL_P(ep)) {
-        return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+        return check_method_entry(cfp->method, TRUE);
     } else {
         return NULL;
     }

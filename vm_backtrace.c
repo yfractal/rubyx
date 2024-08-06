@@ -1651,7 +1651,6 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 {
     int i;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
-    const rb_callable_method_entry_t *cme;
 
     if (!cfp) {
         return 0;
@@ -1661,7 +1660,7 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
     for (i=0; i<limit && cfp != end_cfp;) {
-        buff[i] = (VALUE) cfp->method;
+        buff[i] = (VALUE)rb_vm_frame_local_method_entry(cfp);
         // if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
         //     // skip start
         //     if (start > 0) {
