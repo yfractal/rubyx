@@ -424,7 +424,8 @@ vm_push_frame(rb_execution_context_t *ec,
         .ep         = sp - 1, // type
         .block_code = NULL,
         .generation = ec->generation,
-        .method     = sp - 3, // cref_or_me
+        .method     = *(sp - 3), // cref_or_me
+        .ep2        = *(sp - 1), // cref_or_me
 #if VM_DEBUG_BP_CHECK
         .bp_check   = sp,
 #endif
@@ -756,9 +757,9 @@ vm_backref_defined(const rb_execution_context_t *ec, const VALUE *lep, rb_num_t 
 const rb_callable_method_entry_t *
 rb_vm_frame_local_method_entry(const rb_control_frame_t *cfp)
 {
-    const VALUE *ep = cfp->ep;
+    VALUE ep = cfp->ep2;
 
-    if (VM_ENV_LOCAL_P(ep)) {
+    if (VM_ENV_LOCAL_P(&ep)) {
         return check_method_entry(cfp->method, TRUE);
     } else {
         return NULL;

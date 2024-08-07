@@ -864,7 +864,8 @@ typedef struct rb_control_frame_struct {
     const void *block_code; // cfp[5] / block[2] -- iseq, ifunc, or forwarded block handler
     void *jit_return;       // cfp[6] -- return address for JIT code
     int generation;         // cfp[6] new added
-    const VALUE *method;    // cfp[4] / block[1]
+    VALUE method;           // cfp[7] new added
+    VALUE ep2;              // cfp[8] new added
 
 #if VM_DEBUG_BP_CHECK
     VALUE *bp_check;        // cfp[8]
