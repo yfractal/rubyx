@@ -1574,10 +1574,12 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
 }
 
 static int
-thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
+thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, int *trace_ids, int *generations)
 {
     int i;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+    int trace_id = ec->trace_id;
+    int generation = ec->generation;
 
     if (!cfp) {
         return 0;
@@ -1588,19 +1590,26 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 
     for (i=0; i<limit && cfp != end_cfp;) {
         buff[i] = (VALUE)rb_vm_frame_local_method_entry(cfp);
+        trace_ids[i] = trace_id;
+        generations[i] = cfp->generation;
 
         i += 1;
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
+    }
+
+    // concurrency control
+    if (generation != ec->generation) {
+        return 0;
     }
 
     return i;
 }
 
 int
-rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff)
+rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, int *trace_ids, int *generations)
 {
     rb_thread_t *th = rb_thread_ptr(thread);
-    return thread_frames(th->ec, start, limit, buff);
+    return thread_frames(th->ec, start, limit, buff, trace_ids, generations);
 }
 
 static int
@@ -1841,22 +1850,6 @@ rb_profile_frame_singleton_method_p(VALUE frame)
     VALUE klass = frame2klass(frame);
 
     return RBOOL(klass && !NIL_P(klass) && FL_TEST(klass, FL_SINGLETON));
-}
-
-VALUE
-rb_frame_generation(VALUE frame)
-{
-    const framex_t *cf = (framex_t *)(frame);
-
-    return INT2NUM(cf->generation);
-}
-
-VALUE
-rb_frame_trace_id(VALUE frame)
-{
-    const framex_t *cf = (framex_t *)(frame);
-
-    return INT2NUM(cf->trace_id);
 }
 
 VALUE
