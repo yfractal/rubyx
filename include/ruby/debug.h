@@ -162,6 +162,7 @@ VALUE rb_profile_frame_base_label(VALUE frame);
  */
 VALUE rb_profile_frame_full_label(VALUE frame);
 VALUE me_frame_method_name(VALUE cme);
+VALUE me_frame_classpath(VALUE cme);
 /**
  * Queries the first  line of the method  of the passed frame  pointer.  Can be
  * handy when for instance a debugger want to display the frame in question.

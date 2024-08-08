@@ -2023,11 +2023,12 @@ rb_profile_frame_full_label(VALUE frame)
 
 VALUE
 me_frame_method_name(VALUE cmep){
-    if (cmep == Qnil || cmep == NULL) {
+    if (NIL_P(cmep) || cmep == Qnil || cmep == NULL) {
         return Qnil;
     }
 
     const rb_callable_method_entry_t *cme =  (rb_callable_method_entry_t *)cmep;
+
     if (cme->def == NULL) {
         return Qnil;
     }
@@ -2042,5 +2043,30 @@ me_frame_method_name(VALUE cmep){
         } else {
             return Qnil;
         }
+    }
+}
+
+VALUE
+me_frame_classpath(VALUE cmep){
+    if (NIL_P(cmep) || cmep == Qnil || cmep == NULL) {
+        return Qnil;
+    }
+    const rb_callable_method_entry_t *cme =  (rb_callable_method_entry_t *)cmep;
+
+    VALUE klass = cme->defined_class;
+
+    if (klass && !NIL_P(klass)) {
+        if (RB_TYPE_P(klass, T_ICLASS)) {
+            klass = RBASIC(klass)->klass;
+        }
+        else if (FL_TEST(klass, FL_SINGLETON)) {
+            klass = RCLASS_ATTACHED_OBJECT(klass);
+            if (!RB_TYPE_P(klass, T_CLASS) && !RB_TYPE_P(klass, T_MODULE))
+                return rb_sprintf("#<%s:%p>", rb_class2name(rb_obj_class(klass)), (void*)klass);
+        }
+
+        return rb_class_path(klass);
+    } else {
+        return Qnil;
     }
 }
