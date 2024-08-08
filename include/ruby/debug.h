@@ -70,19 +70,8 @@ int rb_profile_frames(int start, int limit, VALUE *buff, int *lines);
  */
 int rb_profile_thread_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
 
-typedef struct {
-    int generation;
-    int trace_id;
-    VALUE method_name;
-    VALUE full_label;
-    int method_type;
-    int lineno;
-    int index;
-} framex_t;
-
 int rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff);
 bool rb_set_trace_id_and_generation(int trace_id, int generation_id);
-int rb_thread_frames2(VALUE thread, int start, int limit, framex_t *buff);
 
 /**
  * Queries the path of the passed backtrace.
