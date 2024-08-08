@@ -1573,28 +1573,11 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
     return dc->backtrace;
 }
 
-typedef struct {
-    int generation;
-    int trace_id;
-    VALUE method_name;
-    VALUE full_label;
-    int method_type;
-    int lineno;
-    int index;
-} framex_t;
-
 static int
-thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t update_func)
+thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 {
     int i;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
-    const rb_callable_method_entry_t *cme;
-
-    VALUE method_name = Qnil;
-    int method_type = 0;
-    int lineno = 0;
-    VALUE full_label = Qnil;
-    VALUE profile_frame;
 
     if (!cfp) {
         return 0;
@@ -1604,36 +1587,31 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, sta
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
     for (i=0; i<limit && cfp != end_cfp;) {
-        if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
-            // skip start
-            if (start > 0) {
-                start--;
-                continue;
-            }
+        buff[i] = (VALUE)rb_vm_frame_local_method_entry(cfp);
+        i += 1;
+        // if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
+        //     // skip start
+        //     if (start > 0) {
+        //         start--;
+        //         continue;
+        //     }
 
-            cme = rb_vm_frame_method_entry(cfp);
-            if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-                profile_frame = (VALUE)cme;
-            }  else {
-                profile_frame = (VALUE)cfp->iseq;
-            }
+        //     cme = rb_vm_frame_local_method_entry(cfp);
+        //     if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+        //         buff[i] = (VALUE)cme;
+        //     }  else {
+        //         buff[i] = (VALUE)cfp->iseq;
+        //     }
 
-            method_name = rb_profile_frame_method_name(profile_frame);
-            full_label = rb_profile_frame_full_label(profile_frame);
+        //     i++;
+        // } else {
 
-            update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
-
-            i++;
-        } else {
-            cme = rb_vm_frame_method_entry(cfp);
-            if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-                method_name = rb_profile_frame_method_name((VALUE)cme);
-                full_label = rb_profile_frame_full_label((VALUE)cme);
-
-                update_func(buff[i], ec->trace_id, cfp->generation, method_name, full_label, method_type, lineno);
-                i ++;
-            }
-        }
+        //     cme = rb_vm_frame_local_method_entry(cfp);
+        //     if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+        //         buff[i] = (VALUE)cme;
+        //         i ++;
+        //     }
+        // }
 
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
     }
@@ -1642,10 +1620,10 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, sta
 }
 
 int
-rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t func)
+rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff)
 {
     rb_thread_t *th = rb_thread_ptr(thread);
-    return thread_frames(th->ec, start, limit, buff, func);
+    return thread_frames(th->ec, start, limit, buff);
 }
 
 static int
@@ -1967,5 +1945,55 @@ rb_profile_frame_full_label(VALUE frame)
         int prefix_len = rb_long2int(label_length - base_label_length);
 
         return rb_sprintf("%.*s%"PRIsVALUE, prefix_len, RSTRING_PTR(label), qualified_method_name);
+    }
+}
+
+VALUE
+me_frame_method_name(VALUE cmep){
+    if (NIL_P(cmep) || cmep == Qnil || cmep == NULL) {
+        return Qnil;
+    }
+
+    const rb_callable_method_entry_t *cme =  (rb_callable_method_entry_t *)cmep;
+
+    if (cme->def == NULL) {
+        return Qnil;
+    }
+
+    if (cme->def->type == VM_METHOD_TYPE_CFUNC) {
+        ID mid = cme->def->original_id;
+        return id2str(mid);
+    } else {
+        if (cme->def->type == VM_METHOD_TYPE_ISEQ) {
+            const rb_iseq_t *iseq = cme->def->body.iseq.iseqptr;
+            return iseq ? rb_iseq_method_name(iseq) : Qnil;
+        } else {
+            return Qnil;
+        }
+    }
+}
+
+VALUE
+me_frame_classpath(VALUE cmep){
+    if (NIL_P(cmep) || cmep == Qnil || cmep == NULL) {
+        return Qnil;
+    }
+    const rb_callable_method_entry_t *cme =  (rb_callable_method_entry_t *)cmep;
+
+    VALUE klass = cme->defined_class;
+
+    if (klass && !NIL_P(klass)) {
+        if (RB_TYPE_P(klass, T_ICLASS)) {
+            klass = RBASIC(klass)->klass;
+        }
+        else if (FL_TEST(klass, FL_SINGLETON)) {
+            klass = RCLASS_ATTACHED_OBJECT(klass);
+            if (!RB_TYPE_P(klass, T_CLASS) && !RB_TYPE_P(klass, T_MODULE))
+                return rb_sprintf("#<%s:%p>", rb_class2name(rb_obj_class(klass)), (void*)klass);
+        }
+
+        return rb_class_path(klass);
+    } else {
+        return Qnil;
     }
 }

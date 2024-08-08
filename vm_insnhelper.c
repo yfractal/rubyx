@@ -421,9 +421,11 @@ vm_push_frame(rb_execution_context_t *ec,
         .sp         = sp,
         .iseq       = iseq,
         .self       = self,
-        .ep         = sp - 1,
+        .ep         = sp - 1, // type
         .block_code = NULL,
         .generation = ec->generation,
+        .method     = *(sp - 3), // cref_or_me
+        .ep2        = *(sp - 1), // cref_or_me
 #if VM_DEBUG_BP_CHECK
         .bp_check   = sp,
 #endif
@@ -438,7 +440,7 @@ vm_push_frame(rb_execution_context_t *ec,
     atomic_signal_fence(memory_order_seq_cst);
     #endif
 
-    ec->cfp = cfp;
+    ec->cfp = cfp; // atomic, before or after the cfp holds whole struct
 
     if (VMDEBUG == 2) {
         SDR();
@@ -752,7 +754,17 @@ vm_backref_defined(const rb_execution_context_t *ec, const VALUE *lep, rb_num_t 
     return rb_reg_nth_defined(nth, backref);
 }
 
+const rb_callable_method_entry_t *
+rb_vm_frame_local_method_entry(const rb_control_frame_t *cfp)
+{
+    VALUE ep = cfp->ep2;
 
+    if (VM_ENV_LOCAL_P(&ep)) {
+        return check_method_entry(cfp->method, TRUE);
+    } else {
+        return NULL;
+    }
+}
 
 const rb_callable_method_entry_t *
 rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
@@ -762,7 +774,7 @@ rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
 
     while (!VM_ENV_LOCAL_P(ep)) {
         if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
-        ep = VM_ENV_PREV_EP(ep);
+        ep = VM_ENV_PREV_EP(ep); // ep[VM_ENV_DATA_INDEX_SPECVAL], ep[-1]
     }
 
     return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);

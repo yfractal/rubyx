@@ -70,8 +70,7 @@ int rb_profile_frames(int start, int limit, VALUE *buff, int *lines);
  */
 int rb_profile_thread_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
 
-typedef void (*stack_frame_update_xframe_func_ptr_t)(VALUE, int, int, VALUE,  VALUE,  int,  int);
-int rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, stack_frame_update_xframe_func_ptr_t func);
+int rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff);
 bool rb_set_trace_id_and_generation(int trace_id, int generation_id);
 
 /**
@@ -151,7 +150,8 @@ VALUE rb_profile_frame_base_label(VALUE frame);
  * though).
  */
 VALUE rb_profile_frame_full_label(VALUE frame);
-
+VALUE me_frame_method_name(VALUE cme);
+VALUE me_frame_classpath(VALUE cme);
 /**
  * Queries the first  line of the method  of the passed frame  pointer.  Can be
  * handy when for instance a debugger want to display the frame in question.
