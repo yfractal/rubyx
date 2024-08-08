@@ -1588,31 +1588,8 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff)
 
     for (i=0; i<limit && cfp != end_cfp;) {
         buff[i] = (VALUE)rb_vm_frame_local_method_entry(cfp);
+
         i += 1;
-        // if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->pc != 0) {
-        //     // skip start
-        //     if (start > 0) {
-        //         start--;
-        //         continue;
-        //     }
-
-        //     cme = rb_vm_frame_local_method_entry(cfp);
-        //     if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_ISEQ) {
-        //         buff[i] = (VALUE)cme;
-        //     }  else {
-        //         buff[i] = (VALUE)cfp->iseq;
-        //     }
-
-        //     i++;
-        // } else {
-
-        //     cme = rb_vm_frame_local_method_entry(cfp);
-        //     if ((cme != NULL) && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-        //         buff[i] = (VALUE)cme;
-        //         i ++;
-        //     }
-        // }
-
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
     }
 
