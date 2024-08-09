@@ -1597,10 +1597,10 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, lon
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
     }
 
-    // concurrency control
-    if (generation != ec->generation) {
-        return 0;
-    }
+    // need fine grain concurrency control, as Ruby stack is very deep, such 200
+    // if (generation != ec->generation) {
+    //     return 0;
+    // }
 
     return i;
 }
