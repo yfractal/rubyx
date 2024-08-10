@@ -1574,7 +1574,7 @@ rb_debug_inspector_backtrace_locations(const rb_debug_inspector_t *dc)
 }
 
 static int
-thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, long *trace_ids, long *generations)
+thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, long *trace_ids, long *generations, VALUE *selfs)
 {
     int i;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
@@ -1592,6 +1592,7 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, lon
         buff[i] = (VALUE)rb_vm_frame_local_method_entry(cfp);
         trace_ids[i] = trace_id;
         generations[i] = cfp->generation;
+        selfs[i] = cfp->self;
 
         i += 1;
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
@@ -1606,10 +1607,10 @@ thread_frames(rb_execution_context_t *ec, int start, int limit, VALUE *buff, lon
 }
 
 int
-rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, long *trace_ids, long *generations)
+rb_thread_frames(VALUE thread, int start, int limit, VALUE *buff, long *trace_ids, long *generations, VALUE *selfs)
 {
     rb_thread_t *th = rb_thread_ptr(thread);
-    return thread_frames(th->ec, start, limit, buff, trace_ids, generations);
+    return thread_frames(th->ec, start, limit, buff, trace_ids, generations, selfs);
 }
 
 static int
